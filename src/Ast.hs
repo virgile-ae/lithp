@@ -31,8 +31,8 @@ splitEvery n xs = as : splitEvery n bs
 prettify :: Node -> String
 prettify = prettify' 0
   where
-    prettify' d (Bool b) = leftPad d $ show b
     prettify' d Nil = leftPad d "nil"
+    prettify' d (Bool b) = leftPad d $ show b
     prettify' d (Number n) = leftPad d $ show n
     prettify' d (String s) = leftPad d ('"' : s ++ "\"")
     prettify' d (Keyword k) = leftPad d (':' : k)
@@ -41,19 +41,18 @@ prettify = prettify' 0
     prettify' d (Vector xs) = prettyList d ("[", "]") xs
     prettify' d (AnonFn xs) = prettyList d ("#(", ")") xs
     prettify' d (Set xs) = prettyList d ("#{", "}") xs
+
     prettify' d (Dict []) = leftPad d "{}"
-    prettify' d (Dict [k, v]) = leftPad d ('{' : prettify' 0 k ++ " " ++ prettify' 0 v ++ "}")
+    prettify' d (Dict [k, v]) = leftPad d ("{" ++ prettify' 0 k ++ " " ++ prettify' 0 v ++ "}")
     prettify' d (Dict (k : v : xs)) =
-      let lhs = leftPad d ('{' : prettify' 0 k ++ prettify' 0 v ++ "\n")
-       in let inner =
-                intercalate "\n" $
-                  map (leftPad (tabWidth * d + 2) . unwords . map (prettify' 0)) $
-                    splitEvery 2 xs
-           in lhs ++ inner ++ "}"
+      let lhs = leftPad d ("{" ++ prettify' 0 k ++ prettify' 0 v ++ "\n") in
+      let inner = intercalate "\n"
+                  $ map (leftPad (tabWidth * d + 2) . unwords . map (prettify' 0))
+                  $ splitEvery 2 xs in
+      lhs ++ inner ++ "}"
 
     prettyList d (l, r) [] = leftPad d (l ++ r)
     prettyList d (l, r) [x] = leftPad d (l ++ prettify' 0 x ++ r)
     prettyList d (l, r) (x : xs) =
-      let lhs = leftPad d l ++ prettify' 0 x ++ "\n"
-       in let inner = intercalate "\n" $ map (prettify' (tabWidth * d + 1)) xs
-           in lhs ++ inner ++ r
+      let inner = intercalate "\n" $ map (prettify' $ d + length l) xs in
+      leftPad d (l ++ prettify' 0 x ++ "\n") ++ inner ++ r
